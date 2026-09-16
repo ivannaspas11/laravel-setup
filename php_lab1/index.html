@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Форма студента</title>
+</head>
+
+<body>
+
+    <!-- Заголовок сторінки -->
+    <h1>Введення даних користувача</h1>
+
+    <!--
+        Створюємо HTML-форму.
+        Метод POST використовується для передачі даних
+        на PHP-скрипт process.php.
+    -->
+    <form action="process.php" method="POST">
+
+        <!-- Поле для введення імені -->
+        <label for="first_name">Ім'я:</label>
+        <input
+            type="text"
+            id="first_name"
+            name="first_name"
+        >
+
+        <br><br>
+
+        <!-- Поле для введення прізвища -->
+        <label for="last_name">Прізвище:</label>
+        <input
+            type="text"
+            id="last_name"
+            name="last_name"
+        >
+
+        <br><br>
+
+        <!-- Кнопка відправлення форми -->
+        <button type="submit">Надіслати</button>
+
+    </form>
+
+</body>
+</html>
