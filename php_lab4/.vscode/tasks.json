@@ -1,0 +1,13 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "PHP: запустити сервер (localhost:8000)",
+            "type": "shell",
+            "command": "php -S localhost:8000 -t .",
+            "isBackground": true,
+            "problemMatcher": [],
+            "group": { "kind": "build", "isDefault": true }
+        }
+    ]
+}

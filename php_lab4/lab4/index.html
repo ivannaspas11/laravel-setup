@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Лабораторна робота №4 — Кешування</title>
+    <!-- Клієнтське кешування, приклад 1: CSS віддає PHP з Cache-Control/Expires -->
+    <link rel="stylesheet" href="client/style.php">
+</head>
+<body>
+<main>
+    <h1>Лабораторна робота №4: кешування в PHP</h1>
+
+    <!-- Клієнтське кешування -->
+    <section>
+        <h2>1. Клієнтське кешування (HTTP-заголовки)</h2>
+        <p>
+            Ця сторінка підключає <code>client/style.php</code> (CSS) та <code>client/image.php</code> (зображення).
+            Обидва скрипти віддають <code>Cache-Control: public, max-age=86400</code>,
+            <code>Expires</code> (+1 доба) і правильний <code>Content-Type</code>.
+        </p>
+        <!-- Клієнтське кешування, приклад 2: зображення з ETag/Last-Modified -->
+        <img src="client/image.php" alt="Cache Lab" width="320" height="120">
+        <p>
+            <a class="btn" href="index.html">Перейти на цю ж сторінку (кеш працює)</a>
+            <a class="btn secondary" href="client/image.php" target="_blank">Відкрити image.php</a>
+        </p>
+        <p class="muted">
+            DevTools → Network: після повторного переходу за посиланням у колонці Size має бути
+            <b>(disk cache)</b> / <b>(memory cache)</b>. Після <b>F5</b> браузер перевіряє ресурс:
+            зображення повертає <b>304 Not Modified</b> (ETag), оскільки його віддано з валідаторами.
+            Не вмикайте «Disable cache» у DevTools.
+        </p>
+    </section>
+
+    <!-- Серверне кешування -->
+    <section>
+        <h2>2. Серверне кешування — клієнтський код (fetch)</h2>
+        <p class="muted">Кожен запит вимірюється через <code>performance.now()</code>; джерело береться із заголовка <code>X-Cache</code>.</p>
+
+        <h3>Файловий кеш (generate-report.php, TTL 10 хв)</h3>
+        <button data-url="generate-report.php" data-label="Файл: звіт">Запит звіту</button>
+        <button data-clear="file" class="secondary">Очистити файловий кеш</button>
+        <a class="btn secondary" href="generate-report.php" target="_blank">Відкрити звіт</a>
+
+        <h3>Кеш у сесії (session-cache.php, TTL 60 с)</h3>
+        <button data-url="session-cache.php?format=json" data-label="Сесія: курси валют">Запит курсів</button>
+        <button data-clear="session" class="secondary">Очистити кеш сесії</button>
+        <a class="btn secondary" href="session-cache.php" target="_blank">Відкрити сторінку</a>
+
+        <h3>Статична властивість класу (static-cache.php)</h3>
+        <a class="btn secondary" href="static-cache.php" target="_blank">Відкрити демонстрацію</a>
+
+        <h3>Автотест</h3>
+        <button id="autotest">Запустити автотест (файл + сесія)</button>
+        <span id="status" class="muted"></span>
+    </section>
+
+    <section>
+        <h2>Журнал запитів</h2>
+        <table>
+            <thead>
+                <tr><th>Час</th><th>Запит</th><th>Джерело</th><th>Тривалість, мс</th><th>Розмір</th></tr>
+            </thead>
+            <tbody id="log"></tbody>
+        </table>
+    </section>
+</main>
+
+<script>
+    const logBody = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+
+    function addRow(label, source, ms, size) {
+        const tr = document.createElement('tr');
+        const badge = source === 'HIT' ? 'hit' : source === 'MISS' ? 'miss' : '';
+        tr.innerHTML = `
+            <td>${new Date().toLocaleTimeString('uk-UA')}</td>
+            <td>${label}</td>
+            <td>${badge ? `<span class="badge ${badge}">${source}</span>` : source}</td>
+            <td class="num">${ms}</td>
+            <td>${size}</td>`;
+        logBody.prepend(tr);
+    }
+
+    // Робить запит і додає рядок у журнал. 
+    async function callEndpoint(url, label) {
+        const t0 = performance.now();
+        const response = await fetch(url, { cache: 'no-store' });
+        const body = await response.text();
+        const ms = Math.round(performance.now() - t0);
+        const source = response.headers.get('X-Cache') || '—';
+
+        addRow(label, source, ms, (body.length / 1024).toFixed(1) + ' КБ');
+        return { source, ms };
+    }
+
+    async function clearCache(type) {
+        const response = await fetch('clear-cache.php?type=' + type, { cache: 'no-store' });
+        const json = await response.json();
+        addRow('Очищення кешу (' + type + ')', JSON.stringify(json), 0, '—');
+    }
+
+    function setBusy(busy, text = '') {
+        document.querySelectorAll('button').forEach(b => b.disabled = busy);
+        statusEl.textContent = text;
+    }
+
+    document.querySelectorAll('button[data-url]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            setBusy(true, 'Виконується запит…');
+            try { await callEndpoint(btn.dataset.url, btn.dataset.label); }
+            finally { setBusy(false); }
+        });
+    });
+
+    document.querySelectorAll('button[data-clear]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            setBusy(true);
+            try { await clearCache(btn.dataset.clear); }
+            finally { setBusy(false); }
+        });
+    });
+
+    document.getElementById('autotest').addEventListener('click', async () => {
+        setBusy(true, 'Автотест виконується (~10 с)…');
+        try {
+            await clearCache('all');
+
+            const f1 = await callEndpoint('generate-report.php', 'Файл: 1-й запит');
+            const f2 = await callEndpoint('generate-report.php', 'Файл: 2-й запит');
+            const s1 = await callEndpoint('session-cache.php?format=json', 'Сесія: 1-й запит');
+            const s2 = await callEndpoint('session-cache.php?format=json', 'Сесія: 2-й запит');
+
+            statusEl.textContent =
+                `Файл: ${f1.ms} мс → ${f2.ms} мс (прискорення ×${Math.max(1, Math.round(f1.ms / Math.max(f2.ms, 1)))}); ` +
+                `Сесія: ${s1.ms} мс → ${s2.ms} мс.`;
+        } catch (e) {
+            statusEl.textContent = 'Помилка: ' + e.message;
+        } finally {
+            document.querySelectorAll('button').forEach(b => b.disabled = false);
+        }
+    });
+</script>
+</body>
+</html>

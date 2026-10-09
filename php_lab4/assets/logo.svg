@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="120" rx="16" fill="url(#g)"/>
+  <circle cx="60" cy="60" r="26" fill="none" stroke="#fff" stroke-width="6"/>
+  <path d="M60 44v16l11 7" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  <text x="104" y="58" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#fff">Cache Lab</text>
+  <text x="104" y="86" font-family="Arial, sans-serif" font-size="16" fill="#e0f2fe">Key + TTL = Value</text>
+</svg>
